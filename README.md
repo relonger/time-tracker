@@ -1,68 +1,152 @@
-ttracker — simple hierarchical time tracker for Ubuntu 22.04
+# TTracker — иерархический трекер времени для Ubuntu 22.04
 
-Requirements
-- Python 3.11
-- GTK 3 (PyGObject), AppIndicator3, Keybinder3 available via Ubuntu packages
-- Virtualenv + requirements.txt
+Простой и удобный трекер времени с древовидными задачами, «одним окном» и возможностью чистого клавиатурного управления. 
+TTracker помогает фиксировать, на что уходит время в течение дня, и строит наглядные отчёты с разбиением по дням/неделям/месяцам.
+Главная задача — позволить соблюсти баланс между работой и отдыхом, особенно актуально при удаленной работе. 
 
-System packages you will likely need (Ubuntu 22.04):
-sudo apt install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-keybinder-3.0 libnotify-bin libgirepository1.0-dev gobject-introspection
+Смена «суток» происходит в 06:00 локального времени (а не в 00:00) — удобно, если вы часто заканчиваете работу глубокой ночью: всё, что до 6 утра, относится к «сегодня».
 
-For tray icon support use one of the following (depending on availability):
-Classic AppIndicator
+
+## Возможности
+- Дерево задач и подзадач с суммированием времени наверх по иерархии.
+- Старт/стоп таймера:
+  - одиночный клик по точке/часикам в колонке статуса;
+  - пробел на выделенной строке;
+  - переключение между задачами автоматически останавливает предыдущую.
+- В одну таблицу выводятся агрегаты по времени:
+  - за сегодня (с учётом границы 06:00),
+  - за неделю (Пн–Вс, с дневной границей 06:00),
+  - за месяц,
+  - всего за всё время.
+- Коррекция времени (без мыши): Enter → ввести строку вида `+5h`, `-30m`, `1h20m`, `90m` и т.п.
+- Цель на день (клавиша T) с уведомлением при достижении; уведомления также приходят по ходу работы таймера (проверка в фоне каждые 30 секунд) и повторяются после каждого нового запуска задачи в тот же день.
+- Глобальные горячие клавиши:
+  - для показа/скрытия окна приложения;
+  - для запуска/остановки конкретной задачи (настраиваются двойным кликом по колонке Hotkey)
+- Интеграция с GNOME:
+  - уведомления о старте/остановке и достижении цели;
+  - иконка в трее.
+- Клавиатурное управление во всём приложении (мышь не требуется):
+  - Вверх/Вниз — перемещение по задачам;
+  - Пробел — старт/стоп;
+  - Enter — корректировка времени;
+  - T — задать цель на день;
+  - Insert — добавить подзадачу; Alt+Insert — добавить корневую задачу;
+  - Delete — удалить задачу;
+  - Ctrl+↑/↓ — менять порядок задач в списке;
+  - ←/→ — свернуть/развернуть узел дерева;
+  - R — открыть отчёт.
+- Отчёты:
+  - диапазоны: текущая неделя/месяц/год, последние 7/30/365 дней, произвольный интервал;
+  - агрегация: по дням / по неделям / по месяцам;
+  - для каждого периода — сгруппированные столбики по корневым задачам, внутри — цветные сегменты по подзадачам; время, начисленное на корень, попадает в сегмент «прочее»;
+  - стабильные цвета подзадач (персистентные, сохраняются вместе с задачей);
+  - справа — иерархическая легенда с цветными маркерами и метриками (сумма, среднее на период, min/max);
+  - при наведении на столбик появляется всплывающая подсказка с детализацией по выбранному периоду (не перекрывает курсор, всегда поверх графика).
+- Данные в человекочитаемом YAML, авто‑сохранение при каждом старте/стопе и раз в 30 минут. Перед записью — резервная копия.
+
+
+## Установка
+TTracker ориентирован на Ubuntu 22.04. Работает на Python 3.11 и GTK 3.
+
+1) Системные пакеты (Ubuntu 22.04):
+```
+sudo apt install -y \
+  python3-gi python3-gi-cairo \
+  gir1.2-gtk-3.0 gir1.2-keybinder-3.0 \
+  libnotify-bin libgirepository1.0-dev gobject-introspection
+```
+Для поддержки иконки в трее установите один из вариантов (в зависимости от доступности):
+- Classic AppIndicator:
 ```
 sudo apt install -y gir1.2-appindicator3-0.1
 ```
-
-OR Ayatana AppIndicator (preferred on Ubuntu 22.04+)
+- Ayatana AppIndicator (предпочтительно на Ubuntu 22.04+):
 ```
 sudo apt install -y gir1.2-ayatanaappindicator3-0.1
 ```
+Убедитесь, что расширение GNOME «AppIndicator» включено (обычно включено по умолчанию).
 
-Ensure the GNOME AppIndicator extension is enabled (usually enabled by default).
-
-Create venv and install
+2) Виртуальное окружение и зависимости Python:
 ```
 python3.11 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 ```
+Примечание: PyGObject зафиксирован (>=3.42,<3.43) для совместимости с Ubuntu 22.04. На более новых дистрибутивах можно поднять версию, если доступен GIRepository 2.0.
 
-Run
+3) Запуск:
 ```
 python main.py
 ```
 
-Data and settings
-- Data: ~/.ttracker/data.yaml (auto-saved on start/stop and every 30 minutes). Backup at ~/.ttracker/data-backup.yaml.
-- Settings: ~/.ttracker/settings.yaml (global show UI hotkey and per-task hotkeys).
 
-Notes
-- Global hotkeys use Keybinder3. On Wayland sessions global hotkeys may be limited. If your desktop uses Wayland, consider logging into the “Ubuntu on Xorg” session for full global hotkey support.
-- PyGObject is pinned in requirements (>=3.42,<3.43) for Ubuntu 22.04 compatibility. If you are on a newer distro with GIRepository 2.0 (gobject-introspection 2.0), you may raise/adjust the pin accordingly.
- 
+## Быстрый старт
+- Добавьте корневые задачи (Alt+Insert) и подзадачи (Insert).
+- Выделите нужную строку и нажмите пробел — таймер запущен. Ещё раз пробел — остановка.
+- Двойной клик по колонке Hotkey — назначьте глобальную горячую клавишу для этой задачи.
+- Нажмите T — задайте дневную цель (например, «2h»). Уведомление придёт при достижении и при последующих запусках в этот день.
+- Нажмите R — откройте отчёт: выберите диапазон и агрегацию, Enter для построения. Наводите мышь на столбики для детализации.
 
-Desktop launcher and autostart (GNOME)
-To create a GNOME menu entry (launcher) and enable autostart on login, run the installer script from the project root:
+
+## Горячие клавиши
+- Пробел — старт/стоп выделенной задачи.
+- Enter — корректировка времени (строки формата `+5h`, `-30m`, `1h20m`, `90m`).
+- T — цель на день.
+- R — окно отчёта.
+- Insert / Alt+Insert — добавить подзадачу / корневую задачу.
+- Delete — удалить задачу.
+- Ctrl+↑/↓ — поменять порядок задач.
+- ←/→ — свернуть/развернуть узел дерева.
+- Глобальная горячая клавиша приложения (показ/скрытие окна) настраивается в `~/.ttracker/settings.yaml`.
+
+
+## Данные и настройки
+- Данные: `~/.ttracker/data.yaml` — дерево задач, интервалы, корректировки, цвета. Перед каждой записью — копия в `~/.ttracker/data-backup.yaml`.
+- Настройки: `~/.ttracker/settings.yaml` — глобальная горячая клавиша окна и карта хоткеев `task_id → accel`.
+- Автосохранение: при каждом старте/остановке таймера и каждые 30 минут.
+
+
+## Отчёты
+- Диапазоны: текущая неделя/месяц/год, последние 7/30/365 дней, произвольные даты.
+- Агрегация: по дням/неделям/месяцам.
+- Цвета подзадач постоянны между днями и перезапусками (сохраняются в данных).
+- Сегмент «прочее» — время, начисленное на корневую задачу напрямую.
+- Справа — иерархическая легенда c цветными маркерами и метриками; при наведении — всплывающая подсказка для выбранного периода.
+
+
+## Автозапуск и ярлык в меню (GNOME)
+Создать пункт меню GNOME (launcher) и включить автозапуск можно скриптом из корня проекта:
 ```
 python install_desktop.py
 ```
-Options:
+Опции:
 ```
-# Do not enable autostart
+# Без автозапуска (только пункт меню)
 python install_desktop.py --no-autostart
 
-# Create only autostart entry (no Applications launcher)
+# Только автозапуск (без пункта меню)
 python install_desktop.py --only-autostart
 
-# Use a specific Python interpreter (if you don’t use .venv)
+# Указать интерпретатор Python (если вы не используете .venv)
 python install_desktop.py --python /path/to/python
 
-# Uninstall entries
+# Удалить записи позже
 python install_desktop.py --uninstall-autostart
 python install_desktop.py --uninstall-launcher
 ```
-Notes:
-- The script prefers ./.venv/bin/python if it exists; otherwise it uses the current Python.
-- If you move the project folder or recreate the virtualenv, re-run the installer to refresh the paths.
-- The launcher uses the themed icon name "appointment-new". You can pass a custom icon path with `--icon /path/to/icon.png`.
+По умолчанию используется `./.venv/bin/python` (если существует). При переносе проекта или пересоздании окружения перезапустите скрипт. Иконку можно изменить: `--icon /path/to/icon.png` (по умолчанию — тема `appointment-new`).
+
+
+## Подсказки и неполадки
+- Иконка в трее не видна — установите один из пакетов AppIndicator/Ayatana (см. выше) и убедитесь, что расширение GNOME включено.
+- Глобальные хоткеи не срабатывают — в Wayland они могут быть ограничены окружением. Используйте сессию «Ubuntu on Xorg» для полной поддержки.
+- Проблемы с установкой PyGObject из pip — проверьте, что установлены `gobject-introspection` и `libgirepository1.0-dev`; версия PyGObject зафиксирована под Ubuntu 22.04 в `requirements.txt`.
+- Появляется пустое белое окно — убедитесь, что выполнены команды установки и что приложение запускается через `python main.py` из активированного окружения.
+
+
+## Скриншоты
+(Здесь будут скриншоты основного окна и окна отчёта.)
+
+—
+Если у вас есть идеи по улучшению, создавайте issue/PR — буду рад обратной связи!
